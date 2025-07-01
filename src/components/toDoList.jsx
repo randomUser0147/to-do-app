@@ -14,9 +14,14 @@ import {
   TableRow,
   TableCell,
   TableBody,
+  AppBar,
+  Toolbar,
+  IconButton,
 } from "@mui/material";
 import { Fragment, useState } from "react";
-
+import TaskIcon from "@mui/icons-material/Task";
+import EditIcon from "@mui/icons-material/Edit";
+import DeleteIcon from "@mui/icons-material/Delete";
 
 function ToDoList() {
   const [tasks, setTasks] = useState([]);
@@ -34,21 +39,53 @@ function ToDoList() {
     setOpen(false);
   };
 
+  const handleDelete = (indexToDelete) => {
+    const updatedTasks = tasks.filter((_, index) => index !== indexToDelete);
+    setTasks(updatedTasks);
+  };
+
   const filteredTasks = tasks.filter((task) =>
     task.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
     <Fragment>
-      <Container sx={{ marginTop: 4 }}>
-        <Typography variant="h2" sx={{ marginBottom: 2, textAlign: "center" }}>
-          To Do List
-        </Typography>
+      {/* AppBar */}
+      <Container>
+        <AppBar sx={{ backgroundColor: "#1976d2", marginBottom: 3 }}>
+          <Toolbar>
+            <Box sx={{ display: "flex", alignItems: "center" }}>
+              <TaskIcon fontSize="large" sx={{ marginRight: 1 }} />
+              <Typography
+                variant="h4"
+                sx={{ flexGrow: 1, textAlign: "center" }}
+              >
+                TaskMate
+              </Typography>
+            </Box>
+          </Toolbar>
+        </AppBar>
+      </Container>
+
+      {/* Search and Add Task Button */}
+      <Container
+        sx={{
+          display: "flex",
+          justifyContent: "flex-end",
+          paddingBottom: 3,
+          position: "absolute",
+          flexDirection: "column",
+          top: "30%",
+          // right: tasks.length > 0 ? "16%" : "40%",
+          right: "16%",
+          gap: 3,
+        }}
+      >
         <Box
           sx={{
             display: "flex",
             justifyContent: "flex-end",
-            marginBottom: 3,
+
             gap: 2,
           }}
         >
@@ -71,9 +108,15 @@ function ToDoList() {
         {/* Dialog for adding a new task */}
         <Dialog
           open={open}
-          size="md"
           onClose={() => setOpen(false)}
-          sx={{ zIndex: 100 }}
+          sx={{
+            zIndex: 100,
+            "& .MuiDialog-paper": {
+              width: "400px",
+              maxWidth: "400px",
+              borderRadius: "24px",
+            },
+          }}
         >
           <DialogTitle>Add a Task</DialogTitle>
           <DialogContent>
@@ -87,29 +130,28 @@ function ToDoList() {
             />
           </DialogContent>
           <DialogActions>
-            <ButtonGroup>
+            <ButtonGroup sx={{ display: "flex", gap: 2 }}>
               <Button
                 variant="contained"
                 color="primary"
                 onClick={addTask}
-                sx={{ marginRight: 1 }}
+                sx={{ borderRadius: "24px" }}
               >
                 Save
               </Button>
               <Button
                 variant="outlined"
                 onClick={() => setOpen(false)}
-                sx={{ marginLeft: 1 }}
+                sx={{ borderRadius: "24px" }}
               >
                 Cancel
               </Button>
             </ButtonGroup>
           </DialogActions>
         </Dialog>
-      </Container>
 
-      {filteredTasks.length > 0 && (
-        <Container sx={{ marginTop: 4 }}>
+        {/* Task List Table */}
+        {filteredTasks.length > 0 && (
           <Table sx={{ minWidth: 650 }}>
             <TableHead>
               <TableRow sx={{ backgroundColor: "#f4f4f4" }}>
@@ -136,16 +178,21 @@ function ToDoList() {
                   <TableCell>{task.name}</TableCell>
                   <TableCell>{task.status}</TableCell>
                   <TableCell>
-                    <Button variant="outlined" color="error">
-                      Delete
-                    </Button>
+                    <ButtonGroup>
+                      <IconButton>
+                        <EditIcon />
+                      </IconButton>
+                      <IconButton onClick={() => handleDelete(index)}>
+                        <DeleteIcon />
+                      </IconButton>
+                    </ButtonGroup>
                   </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
-        </Container>
-      )}
+        )}
+      </Container>
     </Fragment>
   );
 }
