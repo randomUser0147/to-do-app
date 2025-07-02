@@ -4,10 +4,6 @@ import {
   Typography,
   Button,
   Box,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   ButtonGroup,
   Table,
   TableHead,
@@ -17,35 +13,129 @@ import {
   AppBar,
   Toolbar,
   IconButton,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
 } from "@mui/material";
 import { Fragment, useState } from "react";
 import TaskIcon from "@mui/icons-material/Task";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
+import CustomModal from "../utils/CustomModal";
 
 function ToDoList() {
   const [tasks, setTasks] = useState([]);
   const [open, setOpen] = useState(false);
   const [taskName, setTaskName] = useState("");
+  const [taskPriority, setTaskPriority] = useState("Low");
+  const [taskStatus, setTaskStatus] = useState("New");
   const [searchTerm, setSearchTerm] = useState("");
+  const [editTaskId, setEditTaskId] = useState(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const handleChange = (e) => setTaskName(e.target.value);
   const handleSearchChange = (e) => setSearchTerm(e.target.value);
 
-  const addTask = () => {
+  const handleSave = () => {
     if (!taskName.trim()) return;
-    setTasks([...tasks, { name: taskName, status: "new" }]);
-    setTaskName("");
-    setOpen(false);
+    if (editTaskId !== null) {
+      let updatedTasks = tasks.map((task) => 
+        task.id === editTaskId
+          ? {
+              ...task,
+              name: taskName,
+              priority: taskPriority,
+              status: taskStatus,
+            }
+          : task
+      );
+      setTasks(updatedTasks);
+    } else {
+      let newTask = {
+        id: new Date().getTime(),
+        name: taskName,
+        status: taskStatus,
+        priority: taskPriority,
+      };
+      setTasks([...tasks, newTask]);
+    }
+    handleClose();
   };
 
-  const handleDelete = (indexToDelete) => {
-    const updatedTasks = tasks.filter((_, index) => index !== indexToDelete);
+  const handleClose =() =>{
+    setTaskName("");
+    setEditTaskId(null);
+    setTaskPriority("Low");
+    setTaskStatus("New");
+    setOpen(false);
+  }
+
+  const handleDelete = (id) => {
+    const updatedTasks = tasks.filter((task) => task.id !== id);
     setTasks(updatedTasks);
+  };
+
+  const itemClick = (type, event) => {
+    if (type === "priority") {
+      setTaskPriority(event.target.value);
+    } else if (type === "status" && editTaskId !== null) {
+      setTaskStatus(event.target.value);
+    }
   };
 
   const filteredTasks = tasks.filter((task) =>
     task.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const handleEdit = (id) => {
+    const updatedTask = tasks.find((task) => task.id === id);
+    setOpen(true);
+    setEditTaskId(updatedTask.id);
+    setTaskName(updatedTask.name);
+    setTaskPriority(updatedTask.priority);
+    setTaskStatus(updatedTask.status);
+  };
+
+  const modalContent = (
+    <>
+      <TextField
+        label="Enter Task"
+        fullWidth
+        onChange={handleChange}
+        value={taskName}
+        variant="outlined"
+        sx={{ marginBottom: 2 }}
+      />
+      <FormControl fullWidth>
+        <InputLabel>Select Priority</InputLabel>
+        <Select
+          label="Select Priority"
+          value={taskPriority}
+          onChange={(e) => itemClick("priority", e)}
+          sx={{ marginBottom: 2 }}
+        >
+          <MenuItem value={"Low"}>Low</MenuItem>
+          <MenuItem value={"Medium"}>Medium</MenuItem>
+          <MenuItem value={"High"}>High</MenuItem>
+        </Select>
+      </FormControl>
+      {editTaskId !== null && (
+        <FormControl fullWidth>
+          <InputLabel>Set Status</InputLabel>
+          <Select
+            label="Set Status"
+            onChange={(e) => itemClick("status", e)}
+            value={taskStatus}
+            sx={{ marginBottom: 2 }}
+          >
+            <MenuItem value={"New"}>New</MenuItem>
+            <MenuItem value={"Pending"}>Pending</MenuItem>
+            <MenuItem value={"Completed"}>Completed</MenuItem>
+          </Select>
+        </FormControl>
+      )}
+    </>
   );
 
   return (
@@ -76,7 +166,6 @@ function ToDoList() {
           position: "absolute",
           flexDirection: "column",
           top: "30%",
-          // right: tasks.length > 0 ? "16%" : "40%",
           right: "16%",
           gap: 3,
         }}
@@ -104,51 +193,14 @@ function ToDoList() {
             Add task
           </Button>
         </Box>
-
+        <CustomModal
+          isOpen={open}
+          handleClose={handleClose}
+          handleSave={handleSave}
+          title={editTaskId !== null ?  "Edit a task" :"Add a Task"}
+          content={modalContent}
+        ></CustomModal>
         {/* Dialog for adding a new task */}
-        <Dialog
-          open={open}
-          onClose={() => setOpen(false)}
-          sx={{
-            zIndex: 100,
-            "& .MuiDialog-paper": {
-              width: "400px",
-              maxWidth: "400px",
-              borderRadius: "24px",
-            },
-          }}
-        >
-          <DialogTitle>Add a Task</DialogTitle>
-          <DialogContent>
-            <TextField
-              label="Enter Task"
-              fullWidth
-              onChange={handleChange}
-              value={taskName}
-              variant="outlined"
-              sx={{ marginBottom: 2 }}
-            />
-          </DialogContent>
-          <DialogActions>
-            <ButtonGroup sx={{ display: "flex", gap: 2 }}>
-              <Button
-                variant="contained"
-                color="primary"
-                onClick={addTask}
-                sx={{ borderRadius: "24px" }}
-              >
-                Save
-              </Button>
-              <Button
-                variant="outlined"
-                onClick={() => setOpen(false)}
-                sx={{ borderRadius: "24px" }}
-              >
-                Cancel
-              </Button>
-            </ButtonGroup>
-          </DialogActions>
-        </Dialog>
 
         {/* Task List Table */}
         {filteredTasks.length > 0 && (
@@ -157,6 +209,7 @@ function ToDoList() {
               <TableRow sx={{ backgroundColor: "#f4f4f4" }}>
                 <TableCell sx={{ fontWeight: "bold" }}>Sr.</TableCell>
                 <TableCell sx={{ fontWeight: "bold" }}>Name</TableCell>
+                <TableCell sx={{ fontWeight: "bold" }}>Priority</TableCell>
                 <TableCell sx={{ fontWeight: "bold" }}>Status</TableCell>
                 <TableCell sx={{ fontWeight: "bold" }}>Action</TableCell>
               </TableRow>
@@ -164,7 +217,7 @@ function ToDoList() {
             <TableBody>
               {filteredTasks.map((task, index) => (
                 <TableRow
-                  key={index}
+                  key={task.id}
                   sx={{
                     "&:nth-of-type(odd)": {
                       backgroundColor: "#fafafa",
@@ -176,13 +229,14 @@ function ToDoList() {
                 >
                   <TableCell>{index + 1}</TableCell>
                   <TableCell>{task.name}</TableCell>
+                  <TableCell>{task.priority}</TableCell>
                   <TableCell>{task.status}</TableCell>
                   <TableCell>
                     <ButtonGroup>
-                      <IconButton>
+                      <IconButton onClick={() => handleEdit(task.id)}>
                         <EditIcon />
                       </IconButton>
-                      <IconButton onClick={() => handleDelete(index)}>
+                      <IconButton onClick={() => handleDelete(task.id)}>
                         <DeleteIcon />
                       </IconButton>
                     </ButtonGroup>
@@ -192,6 +246,7 @@ function ToDoList() {
             </TableBody>
           </Table>
         )}
+
       </Container>
     </Fragment>
   );
